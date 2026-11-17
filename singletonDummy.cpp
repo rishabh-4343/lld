@@ -49,3 +49,180 @@ c) Eager Initialization
 
 
 */
+
+
+
+/*
+
+Implementation of Singleton Pattern 
+
+
+for C++, only important implemenation is Meyers' Singleton.
+
+Meyer's Singleton is a thread-safe and lazy-initialized implementation of the Singleton pattern in C++.
+It leverages the fact that static local variables are initialized only once, even in the presence of multiple threads.
+
+Example:
+class Singleton {
+public:
+    static Singleton& getInstance() {
+        static Singleton instance; // Meyer's Singleton
+        return instance;
+    }
+private:
+    Singleton() {}
+    Singleton(const Singleton&) = delete;
+    Singleton& operator=(const Singleton&) = delete;
+};
+
+*/
+
+
+
+// Code Example for a Logger using Singleton pattern
+
+
+
+#include <iostream>
+#include <mutex>
+#include  <string> 
+using namespace std;
+
+
+// Logger as a Meyers Singleton: one shared logger for the whole program
+
+
+class Logger {
+    public: 
+
+
+    enum class Level { Info, Warning, Error};
+
+
+    static Logger& getInstance()
+    {
+        static Logger instance;
+        return instance;
+    }
+
+
+
+
+    // Block copying so nobody can create a second logger 
+
+    Logger(const Logger&) = delete;
+    Logger& operator =(const Logger&) = delete;
+
+    ~Logger(){
+        std::cout<< " [Logger] shutting down after " << messageCount_ << "message(s)\n";
+    }
+
+    void setMinlevel(Level level)
+    {
+        lock_guard<mutex> lock(mutex_);
+        minlevel_ = level;
+    }
+
+    void log(Level level, const string& message)
+    {
+        lock_quard<mutex> lock(mutex_);
+        if(level < min_level_)
+        {
+            return;
+        }
+
+        cout<< "[" << toString(level)<<"]"<<message<<'\n';
+        ++messageCount_;
+    }
+
+
+
+    void info(const std::string& message)    { log(Level::Info, message); }
+    void warning(const std::string& message) { log(Level::Warning, message); }
+    void error(const std::string& message)   { log(Level::Error, message); }
+    
+    int messageCount() const {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return messageCount_;
+    }
+
+
+    private:
+
+    Logger()
+    {
+        cout<<"[Logger] created\n";
+    }
+
+
+    static const char* toString(Level level) {
+        switch (level) {
+            case Level::Info:    return "INFO";
+            case Level::Warning: return "WARN";
+            case Level::Error:   return "ERROR";
+        }
+        return "UNKNOWN";
+    }
+
+    mutable mutex mutex_;
+    Level minLevel_ = Level::Info;
+    int messageCount_ = 0;
+
+
+
+};
+
+// Different parts of the program use the same logger without passing it around.
+void connectToDatabase() {
+    Logger::getInstance().info("Connecting to database...");
+    Logger::getInstance().info("Connected.");
+}
+
+void processOrder(int orderId, int quantity) {
+    Logger& logger = Logger::getInstance();
+    logger.info("Processing order " + std::to_string(orderId));
+    if (quantity <= 0) {
+        logger.error("Order " + std::to_string(orderId) + " has invalid quantity");
+        return;
+    }
+    if (quantity > 100) {
+        logger.warning("Order " + std::to_string(orderId) + " is unusually large");
+    }
+}
+
+
+int main() {
+
+    cout <<"Main started \n";
+    Logger& Logger  = Logger :: getInstance();
+    logger.info("Application started");
+
+
+
+    connectToDatabase();
+    processOrder(1, 5);
+    processOrder(2, 500);
+    processOrder(3, 0);
+
+     // Every call to getInstance() returns the very same object.
+    Logger& other = Logger::getInstance();
+    std::cout << "Same object? " << std::boolalpha << (&logger == &other) << '\n';
+
+    // These would not compile because copying is deleted:
+    // Logger copy = Logger::getInstance();
+    // Logger another;
+
+
+        // Only warnings and errors from now on.
+    logger.setMinLevel(Logger::Level::Warning);
+    logger.info("This info message is ignored");
+    logger.warning("Disk space is low");
+
+    std::cout << "Messages logged: " << logger.messageCount() << '\n';
+    std::cout << "main ending\n";
+    return 0;
+
+
+
+
+}
