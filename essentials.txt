@@ -1,0 +1,54 @@
+ 
+
+
+TOPIC 1: difference in ------  "this" and "*this"
+
+1. "this" is the pointer to the object on which the function was called  on 
+2. so, *this is the object itself
+
+example :  if there is a function called "A"
+inside "A", "this"  is the pointer to "A"
+so, "*this" is the "A" itself.
+
+
+
+
+
+
+
+
+
+
+
+Topic 2: Returning a Reference vs Returning a Copy
+
+example code :
+struct CounterCopy {
+    int n = 0;
+    CounterCopy add() { ++n; return *this; }      // returns a COPY
+};
+
+struct CounterRef {
+    int n = 0;
+    CounterRef& add() { ++n; return *this; }      // returns the SAME object
+};
+
+CounterCopy a;  a.add().add().add();   // a.n == 1
+CounterRef  b;  b.add().add().add();   // b.n == 3
+
+
+
+
+here in  the code above, the CounterCopy  and CouterRef are return types. in both cases, *this is returned.
+But CounterRef has a "&" which means a refernce was returned. 
+
+so, a.add().add().add() returns only 1 ----> because the copy was returned and the subsequent add call was made on the copies that got thrown away. 
+whereas, b.add() returns a reference to the same object, so the next .add() acts on top of this -------> thus resulting in 3
+
+
+this is called "Method Chaining"
+
+
+
+
+
